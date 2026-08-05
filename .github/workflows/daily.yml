@@ -1,0 +1,48 @@
+name: Daily Development Tracker
+
+on:
+  schedule:
+    - cron: "0 19 * * *"
+      timezone: "Asia/Kolkata"
+
+  # Allows you to test it manually
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  daily-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Git
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+
+      - name: Create daily maintenance updates
+        run: |
+          DATE=$(TZ=Asia/Kolkata date +'%Y-%m-%d')
+          TIME=$(TZ=Asia/Kolkata date +'%H:%M:%S')
+
+          mkdir -p reports
+
+          echo "# Development Activity" > reports/activity.md
+          echo "" >> reports/activity.md
+          echo "Last maintenance run: $DATE $TIME IST" >> reports/activity.md
+          echo "" >> reports/activity.md
+          echo "Repository: ${{ github.repository }}" >> reports/activity.md
+
+          git add reports/activity.md
+
+          if git diff --cached --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+
+          git commit -m "chore(auto): update daily activity report"
+          git push
